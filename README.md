@@ -15,7 +15,7 @@
 
 ```bash
 # 没有python3
-python3 run.py your_file_root_path
+python3 run.py your_file_dir_path
 ```
 
 ##### 3.案例
