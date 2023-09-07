@@ -2,6 +2,7 @@ import hashlib
 from os import makedirs
 from os.path import dirname, exists, join as path_join
 from shutil import move
+import argparse
 
 from path_filter import file_filter
 
@@ -24,7 +25,7 @@ def work(file_dir: str):
     total, moved = 0, 0
     file_hash = set()
 
-    for i in file_filter(file_dir, 3):
+    for i in file_filter(file_dir, 5):
         total += 1
         hash_value = calc_hash(i)
 
@@ -34,12 +35,23 @@ def work(file_dir: str):
         else:
             move(i, to_dir)
             moved += 1
-        print(f"[Moved/total: {moved}/{total}]")
+
+        if total % 100 == 0:
+            print(f"[Moved/total: {moved}/{total}]")
+    print(f"[Moved/total: {moved}/{total}]")
+
+
+def cli():
+    parser = argparse.ArgumentParser(description='Demo: python3 run.py d:/test_dir')
+    parser.add_argument('dir_path', metavar='dir_path', help="需要去重的文件所在目录的全路径")
+
+    # 解析命令
+    args = parser.parse_args()
+    return args.dir_path
 
 
 def main():
-    file_dir = r"F:\Music\CloudMusic"
-    work(file_dir)
+    work(cli())
 
 
 if __name__ == '__main__':
