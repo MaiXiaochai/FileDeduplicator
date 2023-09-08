@@ -25,6 +25,7 @@ def work(file_dir: str):
     total, moved = 0, 0
     file_hash = set()
 
+    print("Parsing ...")
     for i in file_filter(file_dir, 5):
         total += 1
         hash_value = calc_hash(i)
