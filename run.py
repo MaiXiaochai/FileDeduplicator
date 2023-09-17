@@ -1,10 +1,9 @@
+import argparse
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
-from threading import Lock
 from os import makedirs, remove
-from os.path import dirname, exists, join as path_join
-from shutil import move
-import argparse
+from os.path import exists
+from threading import Lock
 
 from wheel.util import log
 
@@ -12,8 +11,10 @@ from path_filter import file_filter
 
 FILE_HASH = set()
 REMOVED = 0
+COUNT = 0
 HASH_LOCK = Lock()
 FILE_LOCK = Lock()
+COUNT_LOCK = Lock()
 
 
 def calc_hash(file_path: str, tag: str = 'MD5') -> str:
@@ -28,7 +29,7 @@ def check_dir(dir_path):
 
 
 def worker(file_path: str):
-    global FILE_HASH, REMOVED
+    global FILE_HASH, REMOVED, COUNT
     hash_value = calc_hash(file_path)
 
     file_existed = False
@@ -50,6 +51,12 @@ def worker(file_path: str):
         except Exception as err:
             log.error(f'文件删除失败: {file_path} | error: {err}')
 
+    with COUNT_LOCK:
+        COUNT += 1
+
+        if COUNT % 10 == 0:
+            log.info(f"COUNT: {COUNT}")
+
 
 def work(file_dir: str, worker_number: int):
     with ThreadPoolExecutor(worker_number) as pool:
@@ -67,7 +74,7 @@ def cli():
 
 
 def main():
-    threads = 4
+    threads = 6
     work(cli(), threads)
 
 
