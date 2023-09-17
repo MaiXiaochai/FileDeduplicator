@@ -1,10 +1,19 @@
 import hashlib
-from os import makedirs
+from concurrent.futures import ThreadPoolExecutor
+from threading import Lock
+from os import makedirs, remove
 from os.path import dirname, exists, join as path_join
 from shutil import move
 import argparse
 
+from wheel.util import log
+
 from path_filter import file_filter
+
+FILE_HASH = set()
+REMOVED = 0
+HASH_LOCK = Lock()
+FILE_LOCK = Lock()
 
 
 def calc_hash(file_path: str, tag: str = 'MD5') -> str:
@@ -18,28 +27,34 @@ def check_dir(dir_path):
         makedirs(dir_path)
 
 
-def work(file_dir: str):
-    to_dir = path_join(dirname(file_dir), "backup")
-    check_dir(to_dir)
+def worker(file_path: str):
+    global FILE_HASH, REMOVED
+    hash_value = calc_hash(file_path)
 
-    total, moved = 0, 0
-    file_hash = set()
+    file_existed = False
 
-    print("Parsing ...")
-    for i in file_filter(file_dir, 5):
-        total += 1
-        hash_value = calc_hash(i)
-
-        if hash_value not in file_hash:
-            file_hash.add(hash_value)
+    with HASH_LOCK:
+        if hash_value not in FILE_HASH:
+            FILE_HASH.add(hash_value)
 
         else:
-            move(i, to_dir)
-            moved += 1
+            file_existed = True
 
-        if total % 100 == 0:
-            print(f"[Moved/total: {moved}/{total}]")
-    print(f"[Moved/total: {moved}/{total}]")
+    if file_existed:
+        try:
+            remove(file_path)
+            with FILE_LOCK:
+                REMOVED += 1
+                log.info(f"NO.{REMOVED}: 文件删除成功：{file_path}")
+
+        except Exception as err:
+            log.error(f'文件删除失败: {file_path} | error: {err}')
+
+
+def work(file_dir: str, worker_number: int):
+    with ThreadPoolExecutor(worker_number) as pool:
+        for i in file_filter(file_dir, 7):
+            pool.submit(worker, i)
 
 
 def cli():
@@ -52,7 +67,8 @@ def cli():
 
 
 def main():
-    work(cli())
+    threads = 4
+    work(cli(), threads)
 
 
 if __name__ == '__main__':
