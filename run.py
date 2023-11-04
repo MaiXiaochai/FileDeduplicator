@@ -1,3 +1,8 @@
+"""
+    通过计算文件hash值进行去重
+    多任务版
+"""
+
 import argparse
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
